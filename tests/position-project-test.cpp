@@ -1,0 +1,64 @@
+#include "operator-panel.hpp"
+#include "position-editor.hpp"
+#include <QApplication>
+#include <QTemporaryDir>
+#include <QImage>
+#include <QFile>
+#include <QDir>
+#include <QPushButton>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QTimer>
+#include <QElapsedTimer>
+#include <QMouseEvent>
+#include <QThread>
+#include <QTextStream>
+#include <QJsonDocument>
+#include <QFontDatabase>
+#include <QInputDialog>
+#include <QMessageBox>
+#include <QListWidget>
+
+static int checks=0;
+#define CHECK(x) do{++checks;if(!(x))throw jp::Error(QString("Position line %1: %2").arg(__LINE__).arg(#x));}while(false)
+#define THROWS(x) do{bool thrown=false;try{x;}catch(const jp::Error&){thrown=true;}CHECK(thrown);}while(false)
+static void events(int milliseconds=70){QElapsedTimer timer;timer.start();while(timer.elapsed()<milliseconds){QCoreApplication::processEvents();QThread::msleep(1);}}
+static QJsonObject media(jp::Store &s,const QString &pid,const QString &id){for(const auto &v:s.project(pid)["media"].toArray())if(v.toObject()["id"].toString()==id)return v.toObject();throw jp::Error("Fixture missing");}
+int main(int argc,char **argv){QApplication app(argc,argv);QFontDatabase::addApplicationFont("C:/Windows/Fonts/segoeui.ttf");try{
+    QTemporaryDir temp;CHECK(temp.isValid());QImage image(800,400,QImage::Format_ARGB32);image.fill(QColor("#62b5df"));CHECK(image.save(temp.path()+"/image.png"));QString pid,logo,other,qr,qr2,copy;
+    {
+        jp::Store store(temp.path()+"/library");store.open();pid=store.snapshot()["active"].toString();logo=store.importFile(pid,temp.path()+"/image.png","Logos");other=store.duplicateMedia(pid,logo);qr=store.importFile(pid,temp.path()+"/image.png","QR-Codes");qr2=store.duplicateMedia(pid,qr);jp::Downloader downloader(store);jp::Controller c(store,downloader);c.videoSize=[]{return QSize(1920,1080);};
+        jp::PositionDialog editor(c);if(app.arguments().contains("--visual"))editor.setAttribute(Qt::WA_DontShowOnScreen);editor.openCategory("Logos");events();auto &session=editor.session();auto *canvas=editor.findChild<jp::PositionCanvas*>();CHECK(canvas&&canvas->internalWinId()==0);CHECK(session.frame()==QSize(1920,1080));const auto before=store.snapshot();const auto qrBefore=store.categoryLayout(pid,"QR-Codes");
+        int writes=0,drafts=0,heartbeats=0;QObject::connect(&store,&jp::Store::changed,&editor,[&]{++writes;});QObject::connect(&c,&jp::Controller::draftChanged,&editor,[&]{++drafts;});QTimer heartbeat;heartbeat.setInterval(5);QObject::connect(&heartbeat,&QTimer::timeout,&editor,[&]{++heartbeats;});heartbeat.start();
+        auto button=[&](const char *name){auto *b=editor.findChild<QPushButton*>(name);CHECK(b);return b;};auto *step=editor.findChild<QComboBox*>("jpPositionStep");CHECK(step);const auto x=session.layout()["x"].toDouble();for(int i=0;i<3;++i){step->setCurrentIndex(i);button("jpMoveRight")->click();}CHECK(session.layout()["x"].toDouble()==x+61);button("jpMoveLeft")->click();CHECK(session.layout()["x"].toDouble()==x+11);
+        editor.findChild<QDoubleSpinBox*>("jpPosition_x")->setValue(300);editor.findChild<QDoubleSpinBox*>("jpPosition_y")->setValue(200);CHECK(session.layout()["x"]==300);CHECK(session.layout()["y"]==200);CHECK(writes==0);CHECK(drafts==0);CHECK(store.snapshot()==before);
+        session.edit({{"x",300},{"y",200},{"width",400},{"height",200},{"scale",1},{"rotation",0},{"anchor","top-left"}});events();const auto frame=canvas->compositionRect();const double scale=frame.width()/1920.;const QPointF point=frame.topLeft()+QPointF(700,400)*scale,target=point+QPointF(100,50)*scale;
+        QMouseEvent press(QEvent::MouseButtonPress,point,canvas->mapToGlobal(point.toPoint()),Qt::LeftButton,Qt::LeftButton,Qt::NoModifier);QApplication::sendEvent(canvas,&press);QMouseEvent move(QEvent::MouseMove,target,canvas->mapToGlobal(target.toPoint()),Qt::NoButton,Qt::LeftButton,Qt::NoModifier);QApplication::sendEvent(canvas,&move);QMouseEvent release(QEvent::MouseButtonRelease,target,canvas->mapToGlobal(target.toPoint()),Qt::LeftButton,Qt::NoButton,Qt::NoModifier);QApplication::sendEvent(canvas,&release);CHECK(qAbs(session.layout()["width"].toDouble()-500)<.01);CHECK(qAbs(session.layout()["height"].toDouble()-250)<.01);
+        int movements=0;QElapsedTimer stress;stress.start();while(stress.elapsed()<1000){session.move(movements%2?1:-1,0);++movements;if(movements%8==0)QCoreApplication::processEvents();}CHECK(movements>500);CHECK(heartbeats>25);CHECK(writes==0);CHECK(drafts==0);CHECK(canvas->internalWinId()==0);CHECK(store.snapshot()==before);
+        button("jpPositionSave")->click();CHECK(writes==1);CHECK(!session.dirty());CHECK(store.categoryLayout(pid,"QR-Codes")==qrBefore);CHECK(qAbs(store.categoryLayout(pid,"Logos")["width"].toDouble()-500)<.01);CHECK(media(store,pid,logo)["live"].isNull());
+        c.select(other);THROWS(c.take());c.setObsState(true,false,false,"Unit adapter");c.take();CHECK(qAbs(media(store,pid,other)["live"].toObject()["width"].toDouble()-500)<.01);const auto logoLive=media(store,pid,other).value("live");
+        session.category("QR-Codes");session.edit({{"x",1500},{"y",700},{"width",280},{"height",280},{"anchor","top-left"},{"scale",1}});session.save();c.select(qr);c.take();const auto position=media(store,pid,qr)["live"].toObject();c.select(qr2);c.take();CHECK(media(store,pid,qr2)["live"].toObject()["x"]==position["x"]);CHECK(media(store,pid,qr2)["live"].toObject()["width"]==position["width"]);CHECK(media(store,pid,qr)["live"].isNull());CHECK(media(store,pid,other)["live"]==logoLive);
+        session.edit({{"x",1400}});session.save(true);CHECK(media(store,pid,qr2)["live"].toObject()["x"]==1400);CHECK(media(store,pid,other)["live"]==logoLive);session.edit({{"x",999}});editor.reject();CHECK(store.categoryLayout(pid,"QR-Codes")["x"]==1400);
+        const auto bannerPosition=store.categoryLayout(pid,"Banner");const auto publishedBeforeSync=store.project(pid).value("media");c.syncCategories("QR-Codes",{"Banner"},{"x","y"});CHECK(store.categoryLayout(pid,"Banner")["x"]==1400);CHECK(store.categoryLayout(pid,"Banner")["width"]==bannerPosition["width"]);CHECK(store.project(pid)["media"]==publishedBeforeSync);c.undo();CHECK(store.categoryLayout(pid,"Banner")==bannerPosition);c.redo();CHECK(store.categoryLayout(pid,"Banner")["x"]==1400);c.undo();
+        const int physicalFiles=QDir(store.root()+"/media").entryList(QDir::Files).size();copy=store.duplicateProject(pid,"Live 2");CHECK(copy!=pid);CHECK(QDir(store.root()+"/media").entryList(QDir::Files).size()==physicalFiles);CHECK(store.project(copy)["categoryLayouts"]==store.project(pid)["categoryLayouts"]);for(const auto &v:store.project(copy)["media"].toArray()){CHECK(v.toObject()["live"].isNull());CHECK(v.toObject()["id"]!=logo);CHECK(v.toObject()["file"]==media(store,pid,logo)["file"]);}
+        store.renameProject(copy,"Congresso");CHECK(store.project(copy)["id"]==copy);CHECK(store.project(copy)["name"]=="Congresso");c.confirmProvider("native",{{pid,{other,qr2}}});const auto published=store.project(pid).value("media");c.switchProject(copy);CHECK(c.otherProjectsOnAir().contains(store.project(pid)["name"].toString()));CHECK(store.project(pid)["media"]==published);CHECK(c.confirmed.isEmpty());THROWS(store.removeProject(pid));
+        jp::PositionSession second(c);second.open("QR-Codes");second.edit({{"x",100}});second.save();CHECK(store.categoryLayout(copy,"QR-Codes")["x"]==100);CHECK(store.categoryLayout(pid,"QR-Codes")["x"]==1400);c.switchProject(pid);CHECK(c.onAir(other));store.removeProject(copy);CHECK(store.snapshot()["projects"].toArray().size()==1);
+        c.setObsState(false,false,false,"Offline project management");jp::OperatorPanel panel(c);panel.setAttribute(Qt::WA_DontShowOnScreen);panel.resize(1366,768);panel.show();events();
+        auto manage=[&](const QString &action,const QString &input,const QString &target=QString(),QMessageBox::StandardButton answer=QMessageBox::No){
+            bool timedOut=false,failed=false;QTimer watchdog;watchdog.setSingleShot(true);QObject::connect(&watchdog,&QTimer::timeout,&panel,[&]{timedOut=true;for(auto *w:QApplication::topLevelWidgets())if(auto *dialog=qobject_cast<QDialog*>(w))if(dialog->isVisible())dialog->reject();});watchdog.start(2500);
+            QTimer::singleShot(0,&panel,[&]{auto *dialog=panel.findChild<QDialog*>("jpProjectsDialog");if(!dialog){failed=true;return;}auto *list=dialog->findChild<QListWidget*>("jpProjectList");if(!target.isEmpty())for(int i=0;i<list->count();++i)if(list->item(i)->data(Qt::UserRole).toString()==target)list->setCurrentRow(i);
+                if(!input.isEmpty())QTimer::singleShot(0,&panel,[&]{auto *prompt=qobject_cast<QInputDialog*>(QApplication::activeModalWidget());if(!prompt){failed=true;return;}prompt->setTextValue(input);prompt->accept();});
+                if(action=="jpProjectDelete")QTimer::singleShot(0,&panel,[&]{auto *prompt=qobject_cast<QMessageBox*>(QApplication::activeModalWidget());if(!prompt){failed=true;return;}prompt->button(answer)->click();});
+                auto *button=dialog->findChild<QPushButton*>(action);if(!button){failed=true;dialog->reject();return;}button->click();dialog->reject();
+            });panel.findChild<QPushButton*>("jpScenes")->click();watchdog.stop();CHECK(!timedOut);CHECK(!failed);events();
+        };
+        manage("jpProjectCreate","Evento criado na interface");const auto uiProject=c.projectId();CHECK(uiProject!=pid);CHECK(c.project()["name"]=="Evento criado na interface");manage("jpProjectRename","Evento renomeado",uiProject);CHECK(c.projectId()==uiProject);CHECK(c.project()["name"]=="Evento renomeado");manage("jpProjectDuplicate","Cópia pela interface",uiProject);QString uiCopy;for(const auto &v:store.snapshot()["projects"].toArray())if(v.toObject()["name"]=="Cópia pela interface")uiCopy=v.toObject()["id"].toString();CHECK(!uiCopy.isEmpty());CHECK(QDir(store.root()+"/media").entryList(QDir::Files).size()==physicalFiles);manage("jpProjectDelete",{},uiCopy,QMessageBox::No);CHECK(store.project(uiCopy)["id"]==uiCopy);manage("jpProjectDelete",{},uiCopy,QMessageBox::Yes);CHECK(store.snapshot()["projects"].toArray().size()==2);manage("jpProjectOpen",{},pid);CHECK(c.projectId()==pid);CHECK(store.project(pid)["media"]==published);manage("jpProjectDelete",{},uiProject,QMessageBox::Yes);CHECK(store.snapshot()["projects"].toArray().size()==1);
+        QDir().mkpath("artifacts");editor.openCategory("QR-Codes");events();CHECK(editor.grab().save("artifacts/category-position-editor.png"));editor.reject();QFile report("artifacts/position-stress-0.4.json");CHECK(report.open(QIODevice::WriteOnly));report.write(QJsonDocument(QJsonObject{{"passed",true},{"localMovements",movements},{"eventLoopHeartbeats",heartbeats},{"draftSignalsDuringMovement",0},{"storeWritesDuringMovement",0},{"nativeCanvasWindow",false},{"projectManagerUi",true},{"deleteConfirmation",true}}).toJson());
+    }
+    {jp::Store reopened(temp.path()+"/library");reopened.open();CHECK(reopened.snapshot()["active"]==pid);CHECK(reopened.categoryLayout(pid,"QR-Codes")["x"]==1400);CHECK(qAbs(reopened.categoryLayout(pid,"Logos")["width"].toDouble()-500)<.01);CHECK(media(reopened,pid,other)["live"].isObject());}
+    {jp::Store current(temp.path()+"/library");current.open();auto old=current.snapshot();old.remove("positionVersion");auto projects=old["projects"].toArray();auto project=projects.first().toObject();project.remove("categoryLayouts");project.remove("categoryFrames");auto media=project["media"].toArray();auto first=media.first().toObject();auto draft=first["draft"].toObject();draft["x"]=321;first["draft"]=draft;media[0]=first;project["media"]=media;projects[0]=project;old["projects"]=projects;const auto root=temp.path()+"/migration";CHECK(QDir().mkpath(root));const auto original=QJsonDocument(old).toJson();QFile file(root+"/library.json");CHECK(file.open(QIODevice::WriteOnly));CHECK(file.write(original)==original.size());file.close();QByteArray migrated;
+        {jp::Store migration(root);migration.open();CHECK(migration.snapshot()["positionVersion"]==1);CHECK(migration.categoryLayout(pid,"Logos")["x"]==321);CHECK(migration.project(pid)["media"].toArray()==media);QFile backup(root+"/library.before-category-positions.backup.json");CHECK(backup.open(QIODevice::ReadOnly));CHECK(backup.readAll()==original);CHECK(file.open(QIODevice::ReadOnly));migrated=file.readAll();file.close();}
+        {jp::Store migration(root);migration.open();CHECK(file.open(QIODevice::ReadOnly));CHECK(file.readAll()==migrated);file.close();CHECK(QDir(root).entryList({"library.before-category-positions*.backup.json"},QDir::Files).size()==1);}
+    }
+    QTextStream(stdout)<<"PASS category position editor, local stress, project independence, duplication and persistence: "<<checks<<" checks\n";return 0;
+}catch(const std::exception &e){QTextStream(stderr)<<"FAIL after "<<checks<<" checks: "<<e.what()<<"\n";return 1;}}

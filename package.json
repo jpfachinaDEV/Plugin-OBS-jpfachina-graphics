@@ -1,0 +1,12 @@
+{
+  "name": "jp-fachina-graphics-validation",
+  "version": "0.4.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/branding.test.mjs && playwright test",
+    "test:branding": "node --test tests/branding.test.mjs",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": { "@playwright/test": "1.65.0" }
+}

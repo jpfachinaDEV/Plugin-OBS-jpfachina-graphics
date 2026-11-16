@@ -1,0 +1,14 @@
+import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import path from 'node:path';
+const input=process.argv[2];
+if(!input)throw Error('Uso: node scripts/extract-branding.mjs caminho/do/prompt.md');
+const document=await readFile(input,'utf8');
+const match=document.match(/^LOGO_BASE64_INICIO\s*\r?\n([\s\S]*?)\r?\nLOGO_BASE64_FIM\s*$/m);
+if(!match)throw Error('Seção da logo não encontrada.');
+const base64=match[1].replace(/\s/g,'');
+if(!/^[A-Za-z0-9+/]+={0,2}$/.test(base64)||base64.length%4)throw Error('Base64 inválida.');
+const png=Buffer.from(base64,'base64');const hash=createHash('sha256').update(png).digest('hex');
+if(hash!=='49e0bd162507b25133d594a42729b2d711fcbc8fe34d475d163f17e6b8c309ff')throw Error('A imagem não corresponde à logo SYNC original deste projeto.');
+const target=path.resolve('assets/branding/jpfachina-sync-original.png');await mkdir(path.dirname(target),{recursive:true});await writeFile(target,png);
+console.log(`Logo original extraída: ${png.readUInt32BE(16)} × ${png.readUInt32BE(20)}; SHA-256 ${hash}`);

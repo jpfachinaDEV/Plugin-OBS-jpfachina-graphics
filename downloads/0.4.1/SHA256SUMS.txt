@@ -1,0 +1,2 @@
+3d23bb705630ae5315a65d8cbd6229f18a7a36a4d210f003221d48381c466c45  JP-Fachina-Graphics-0.4.1-Windows-x64.zip
+26293665490c8e60a6dbdc72f391e70a263d5027937c21b8eda6bf9ba48d9bbe  JP-Fachina-Graphics-0.4.1-Windows-x64-Setup.exe

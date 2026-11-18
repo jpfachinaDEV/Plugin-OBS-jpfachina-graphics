@@ -16,6 +16,28 @@ Feche o OBS antes de instalar. Em **Link OBS**, associe a composição JP Fachin
 
 Para mover apenas o placar, selecione-o e use **Editar posição → Scoreboard**. Arraste, redimensione ou ajuste os números; **Salvar** prepara o próximo Take e **Salvar e aplicar no ar** também altera a saída atual. Transformar a fonte composta diretamente no OBS afeta todos os seus grafismos.
 
+## Imagens
+
+Capturas reais da versão beta no ambiente de teste isolado com OBS 33.
+
+### Aba 1 — Mídias
+
+![Painel com logos, banners, QR-Codes e conteúdo selecionado](docs/images/01-painel-aba1.png)
+
+### Aba 2 — Vinhetas
+
+![Painel com artes e vídeo de teste em loop](docs/images/02-painel-aba2.png)
+
+### Aba 3 — Scoreboard
+
+![Scoreboard preenchido no ambiente de teste](docs/images/07-painel-aba3-scoreboard.png)
+
+### Saída no OBS
+
+![Composição renderizada pelo OBS](docs/images/03-saida-obs.png)
+
+Veja também o [editor de posição, projetos e Link OBS](docs/SCREENSHOTS.md).
+
 ## Documentação
 
 - [Instalação e operação](LEIA-ME.md)

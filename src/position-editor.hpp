@@ -33,7 +33,7 @@ signals:
     void changed();
 private:
     Controller &c_;
-    QString project_,category_;
+    QString project_,category_,scoreboardId_;
     QSize frame_;
     QMap<QString,QJsonObject> originals_,drafts_;
     QImage image_;
@@ -44,6 +44,7 @@ class PositionCanvas : public QWidget {
 public:
     explicit PositionCanvas(PositionSession &session,QWidget *parent=nullptr);
     QRectF compositionRect()const;
+    void setPreserveAspect(bool value){preserveAspect_=value;}
 protected:
     void paintEvent(QPaintEvent *)override;
     void mousePressEvent(QMouseEvent *)override;
@@ -54,7 +55,8 @@ private:
     PositionSession &session_;
     QJsonObject start_;
     QPointF startPoint_;
-    bool dragging_=false,resizing_=false;
+    bool dragging_=false,resizing_=false,preserveAspect_=true;
+    int handle_=-1;
 };
 class PositionDialog : public QDialog {
     Q_OBJECT

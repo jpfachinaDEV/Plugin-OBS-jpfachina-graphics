@@ -111,7 +111,7 @@ void Server::route(QTcpSocket *s,const QByteArray &method,const QUrl &url,const 
     if(parts.size()==2&&parts[0]=="state"){reply(s,200,json(store_.liveState(parts[1])));return;}
     if(parts.size()==3&&(parts[0]=="media"||parts[0]=="thumb")){
         const auto p=store_.projectByKey(parts[1]);for(const auto &v:p["media"].toArray()){const auto m=v.toObject();if(m["id"].toString()!=parts[2])continue;
-            const bool thumb=parts[0]=="thumb";file(s,store_.mediaPath(m,thumb),thumb?QByteArray("image/png"):m["mime"].toString().toLatin1(),h.value("range"));return;}throw Error("Mídia não encontrada.");
+            const bool thumb=parts[0]=="thumb",board=m["mime"]=="application/x-jp-scoreboard";file(s,board?store_.scoreboardImagePath(p,m):store_.mediaPath(m,thumb),thumb||board?QByteArray("image/png"):m["mime"].toString().toLatin1(),h.value("range"));return;}throw Error("Mídia não encontrada.");
     }
     QString resource;
     if(path=="/panel"||path=="/")resource=":/jp/web/panel.html";

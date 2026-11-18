@@ -68,7 +68,9 @@ struct Output {
         ++appliedStates;
         const auto items=state["items"].toArray();QSet<QString> keep;
         for(const auto &v:items){const auto data=v.toObject();const auto id=data["id"].toString();if(id.isEmpty())continue;keep.insert(id);
-            auto found=elements.find(id);if(found!=elements.end()&&(found->second->data["path"]!=data["path"]||found->second->data["mime"]!=data["mime"])){elements.erase(found);found=elements.end();}
+            auto found=elements.find(id);if(found!=elements.end()&&(found->second->data["path"]!=data["path"]||found->second->data["mime"]!=data["mime"])){if(found->second->data["mime"]=="image/png"&&data["mime"]=="image/png"){
+                    auto *settings=obs_data_create();obs_data_set_string(settings,"file",data["path"].toString().toUtf8().constData());obs_source_update(found->second->source,settings);obs_data_release(settings);found->second->layoutDirty=true;
+                }else{elements.erase(found);found=elements.end();}}
             if(found==elements.end()){auto element=create(data);if(!element)continue;elements.emplace(id,std::move(element));found=elements.find(id);}
             auto &e=*found->second;
             if(e.data["generation"]!=data["generation"]&&data["mime"].toString().startsWith("video/")){obs_source_media_restart(e.source);e.elapsed=0;}

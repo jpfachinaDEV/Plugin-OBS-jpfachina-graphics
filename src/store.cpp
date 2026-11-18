@@ -18,6 +18,7 @@
 #include <QRegularExpression>
 #include <QHostAddress>
 #include <QUuid>
+#include <QTimer>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -130,6 +131,9 @@ void Store::open() {
         data_ = {{"schema",2},{"panelVersion",3},{"positionVersion",1},{"port",28741},{"active",""},{"projects",QJsonArray{}}};
         createProject("Minha transmissão");
     }
+    scoreboards();
+    auto *clock=new QTimer(this);clock->setInterval(1000);connect(clock,&QTimer::timeout,this,[this]{for(const auto &v:data_["projects"].toArray()){const auto p=v.toObject();if(!p["scoreboardData"].toObject()["clockRunning"].toBool())continue;for(const auto &entry:p["media"].toArray()){const auto m=entry.toObject();if(m["mime"]=="application/x-jp-scoreboard"&&m["live"].isObject()){emit changed();return;}}}});clock->start();
+    auto *cacheCleanup=new QTimer(this);cacheCleanup->setInterval(60000);connect(cacheCleanup,&QTimer::timeout,this,[this]{const auto cutoff=QDateTime::currentDateTime().addSecs(-300);for(const auto &info:QDir(root_+"/scoreboard-cache").entryInfoList({"*.png"},QDir::Files))if(info.lastModified()<cutoff)QFile::remove(info.absoluteFilePath());});cacheCleanup->start();
 }
 void Store::commit(const QJsonObject &next) {
     const auto bytes = QJsonDocument(next).toJson();
@@ -265,6 +269,11 @@ void Store::setLive(const QString &pid, const QString &id, bool on) {
         list[i]=m;p["media"]=list;replaceProject(p);return;
     } throw Error("Mídia não encontrada.");
 }
+void Store::updateScoreboardPosition(const QString &pid,const QString &id,const QJsonObject &layout,bool applyLive){
+    auto p=project(pid);auto list=p["media"].toArray();for(int i=0;i<list.size();++i){auto m=list[i].toObject();if(m["id"]!=id)continue;if(m["mime"]!="application/x-jp-scoreboard")throw Error("Posição individual disponível somente para scoreboard.");
+        m["draft"]=validatedLayout(m["draft"].toObject(),layout);if(applyLive&&m["live"].isObject())m["live"]=validatedLayout(m["live"].toObject(),layout);list[i]=m;p["media"]=list;replaceProject(p);return;
+    }throw Error("Scoreboard não encontrado no evento.");
+}
 void Store::take(const QString &pid,const QString &id){
     auto p=project(pid);auto list=p["media"].toArray();QJsonObject selected;
     for(const auto &v:list)if(v.toObject()["id"].toString()==id)selected=v.toObject();
@@ -272,7 +281,7 @@ void Store::take(const QString &pid,const QString &id){
     if(selected["disabled"].toBool())throw Error("Elemento desativado.");
     for(int i=0;i<list.size();++i){auto m=list[i].toObject();
         if(m["id"].toString()==id){m["live"]=effectiveLayout(p,m);m["generation"]=m["generation"].toInt()+1;}
-        else if(panelCategory(m["category"].toString(),m["mime"].toString())==panelCategory(selected["category"].toString(),selected["mime"].toString()))m["live"]=QJsonValue::Null;
+        else if(m["mime"]=="application/x-jp-scoreboard"?selected["mime"]=="application/x-jp-scoreboard":selected["mime"]!="application/x-jp-scoreboard"&&panelCategory(m["category"].toString(),m["mime"].toString())==panelCategory(selected["category"].toString(),selected["mime"].toString()))m["live"]=QJsonValue::Null;
         list[i]=m;
     }p["media"]=list;replaceProject(p);
 }
@@ -303,15 +312,16 @@ void Store::saveThumbnail(const QString &pid,const QString &id,const QByteArray 
 }
 QString Store::mediaPath(const QJsonObject &m,bool thumb) const {
     const auto rel=m[thumb?"thumbnail":"file"].toString();
-    if(rel.isEmpty()||rel.contains("..")||rel.contains('\\')||QDir::isAbsolutePath(rel)||!(rel.startsWith("media/")||rel.startsWith("thumbs/")))throw Error("Arquivo indisponível.");
+    if(rel.isEmpty()||rel.contains("..")||rel.contains('\\')||QDir::isAbsolutePath(rel)||!(rel.startsWith("media/")||rel.startsWith("thumbs/")))throw Error("Arquivo indisponível: o cadastro aponta para um caminho inválido fora da biblioteca de mídia.");
     const auto path=QFileInfo(root_+"/"+rel).canonicalFilePath();const auto base=QFileInfo(root_).canonicalFilePath()+"/";
     if(path.isEmpty()||!path.startsWith(base))throw Error("Mídia ausente da biblioteca.");return path;
 }
 QJsonObject Store::liveState(const QString &key) const {
     const auto p=projectByKey(key);QJsonArray live;
     for(const auto &v:p["media"].toArray()){auto m=v.toObject();if(!m["live"].isObject())continue;
-        live.append(QJsonObject{{"id",m["id"]},{"name",m["name"]},{"mime",m["mime"]},{"layout",m["live"]},{"generation",m["generation"]},
-            {"url","/media/"+key+"/"+m["id"].toString()}});}
+        const bool board=m["mime"]=="application/x-jp-scoreboard";
+        live.append(QJsonObject{{"id",m["id"]},{"name",m["name"]},{"mime",board?QJsonValue("image/png"):m["mime"]},{"layout",m["live"]},{"generation",m["generation"]},
+            {"url","/media/"+key+"/"+m["id"].toString()+(board?"?v="+QString::number(QDateTime::currentMSecsSinceEpoch()/1000):QString())}});}
     return {{"width",p["width"]},{"height",p["height"]},{"items",live}};
 }
 quint16 Store::preferredPort()const{return quint16(qBound(1024,data_["port"].toInt(28741),65535));}

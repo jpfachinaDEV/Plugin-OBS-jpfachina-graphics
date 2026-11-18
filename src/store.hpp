@@ -53,6 +53,7 @@ public:
     void importFileAsync(const QString &id,const QString &path,const QString &category,const QString &origin={},bool removeSource=false);
     void updateMedia(const QString &projectId, const QString &id, const QJsonObject &patch);
     void setLive(const QString &projectId, const QString &id, bool on);
+    void updateScoreboardPosition(const QString &projectId,const QString &id,const QJsonObject &layout,bool applyLive);
     void take(const QString &projectId,const QString &id);
     void replaceMedia(const QString &projectId,const QString &id,const QString &path);
     void replaceMediaAsync(const QString &projectId,const QString &id,const QString &path);
@@ -64,6 +65,15 @@ public:
     void restoreLayouts(const QString &projectId, const QJsonArray &changes, bool undo);
     void saveTemplate(const QString &projectId, const QString &name, const QJsonObject &layout);
     void applyTemplate(const QString &projectId, const QString &name, const QStringList &targets);
+    QJsonArray scoreboards() const;
+    QString saveScoreboard(const QJsonObject &definition,const QString &pngPath={});
+    QString duplicateScoreboard(const QString &id);
+    void removeScoreboard(const QString &id);
+    void exportScoreboard(const QString &id,const QString &zipPath) const;
+    QString importScoreboard(const QString &zipPath);
+    QString selectScoreboard(const QString &projectId,const QString &templateId);
+    void scoreboardData(const QString &projectId,const QJsonObject &data);
+    QString scoreboardImagePath(const QJsonObject &project,const QJsonObject &media,bool preview=false) const;
     void exportProject(const QString &id, const QString &directory) const;
     QString importProject(const QString &directory);
     void exportProjectAsync(const QString &id,const QString &directory);

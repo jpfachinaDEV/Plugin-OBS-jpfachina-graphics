@@ -12,7 +12,7 @@ não marque a criação automática desses arquivos. Na pasta deste projeto:
 ```powershell
 git init
 git add .
-git commit -m "Publica JPFachina OBS Controller 0.4.1"
+git commit -m "Publica JP Fachina Graphics 1.0.3-beta"
 git branch -M main
 git remote add origin https://github.com/SEU-USUARIO/jp-fachina-graphics.git
 git push -u origin main
@@ -31,12 +31,12 @@ Explorador. Veja as [instruções oficiais](https://docs.github.com/en/repositor
 
 ## Criar a versão para download
 
-Os links relativos do README já apontam para `downloads/0.4.1`. Para também
+Os links relativos do README já apontam para `downloads/1.0.3-beta`. Para também
 oferecer a versão na área Releases:
 
 1. Abra Releases → Draft a new release.
-2. Crie a tag `v0.4.1` e use o título `JPFachina OBS Controller 0.4.1`.
-3. Copie as notas de `downloads/0.4.1/RELEASE-NOTES.md`.
+2. Crie a tag `v1.0.3-beta` e use o título `JP Fachina Graphics 1.0.3 beta`. Marque como pré-lançamento.
+3. Copie as notas de `downloads/1.0.3-beta/RELEASE-NOTES.md`.
 4. Anexe o instalador EXE, o pacote ZIP e `SHA256SUMS.txt` dessa pasta.
 5. Revise os arquivos e publique a release na sua conta.
 

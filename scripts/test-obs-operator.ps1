@@ -21,7 +21,7 @@ New-Item -ItemType Directory -Path (Join-Path $libraryRoot 'media') -Force | Out
 Copy-Item -LiteralPath (Join-Path $repoRoot 'assets/branding/jpfachina-sync-original.png') -Destination (Join-Path $libraryRoot 'media/logo.png')
 $draft=@{x=90;y=90;width=600;height=237;z=0;transition='fade';duration=200;loop=$true}
 $item=@{id='smoke-logo';name='Logo original';category='Logos';file='media/logo.png';mime='image/png';bytes=(Get-Item -LiteralPath (Join-Path $libraryRoot 'media/logo.png')).Length;origin='isolated-test';draft=$draft;live=$draft;generation=1}
-Copy-Item -LiteralPath (Join-Path $repoRoot 'tests/fixtures/sample.mp4') -Destination (Join-Path $libraryRoot 'media/video.mp4')
+Copy-Item -LiteralPath (Join-Path $repoRoot '.deps/render-fixtures/sample.mp4') -Destination (Join-Path $libraryRoot 'media/video.mp4')
 $videoDraft=@{x=500;y=500;width=320;height=180;z=1;transition='none';duration=0;loop=$false;endBehavior='out'}
 $videoItem=@{id='smoke-video';name='Video teste';category='Vídeos';file='media/video.mp4';mime='video/mp4';bytes=(Get-Item -LiteralPath (Join-Path $libraryRoot 'media/video.mp4')).Length;origin='isolated-test';draft=$videoDraft;live=$null;generation=0}
 $project=@{id='smoke-project';key=('a'*64);name='Validação nativa isolada';width=1920;height=1080;categories=@('Logos','Tarjetas','Banners','Overlays','Outros','Vídeos');media=@($item,$videoItem)}

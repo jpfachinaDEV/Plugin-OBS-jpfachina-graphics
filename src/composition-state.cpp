@@ -17,8 +17,8 @@ QJsonObject compositionState(Store &store,const QJsonObject &project,const QStri
             const auto bytes=QJsonDocument(visual).toJson(QJsonDocument::Compact);const auto hash=QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex();
             QDir().mkpath(store.root()+"/titles");path=store.root()+"/titles/"+QString::fromLatin1(hash)+".png";
             if(!QFileInfo::exists(path)){QSaveFile f(path);if(!f.open(QIODevice::WriteOnly)||!titleImage(layout).save(&f,"PNG")||!f.commit())throw Error("Falha ao preparar texto da tarjeta.");}
-        }else{try{path=store.mediaPath(m);}catch(const std::exception &e){qWarning().noquote()<<"[JP Fachina Graphics]"<<e.what();continue;}}
-        items.append(QJsonObject{{"id",m["id"]},{"name",m["name"]},{"mime",m["mime"]},{"path",path},{"layout",layout},{"generation",preview?0:m["generation"].toInt()}});
+        }else{try{path=m["mime"]=="application/x-jp-scoreboard"?store.scoreboardImagePath(project,m,preview):store.mediaPath(m);}catch(const std::exception &e){qWarning().noquote()<<"[JP Fachina Graphics]"<<e.what();continue;}}
+        items.append(QJsonObject{{"id",m["id"]},{"name",m["name"]},{"mime",m["mime"]=="application/x-jp-scoreboard"?QJsonValue("image/png"):m["mime"]},{"path",path},{"layout",layout},{"generation",preview?0:m["generation"].toInt()}});
     }
     return {{"width",project["width"].toInt(1920)},{"height",project["height"].toInt(1080)},{"items",items}};
 }

@@ -1,9 +1,12 @@
-﻿Unicode true
+Unicode true
 !include "MUI2.nsh"
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
 !ifndef VERSION
-  !define VERSION "0.4.1"
+  !define VERSION "1.0.3-beta"
+!endif
+!ifndef NUMERIC_VERSION
+  !define NUMERIC_VERSION "1.0.3"
 !endif
 !ifndef OBS_VERSION
   !define OBS_VERSION "33.0.1"
@@ -22,7 +25,7 @@ OutFile "${OUTPUT_FILE}"
 InstallDir ""
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
-VIProductVersion "${VERSION}.0"
+VIProductVersion "${NUMERIC_VERSION}.0"
 VIAddVersionKey /LANG=1046 "ProductName" "JP Fachina Graphics"
 VIAddVersionKey /LANG=1046 "FileDescription" "Instalador do plugin JP Fachina Graphics para OBS Studio"
 VIAddVersionKey /LANG=1046 "FileVersion" "${VERSION}"
@@ -72,9 +75,10 @@ Section "JP Fachina Graphics"
   File "${PACKAGE_DIR}\compatibility.json"
   SetOutPath "$INSTDIR\docs"
   File "${PACKAGE_DIR}\docs\BUILD.md"
-
-  File "${PACKAGE_DIR}\docs\COMPATIBILITY.md"
-
+  File "${PACKAGE_DIR}\docs\REFACTOR-0.3.md"
+  File "${PACKAGE_DIR}\docs\REFACTOR-0.4.md"
+  File "${PACKAGE_DIR}\docs\FIX-OBS33-0.4.1.md"
+  File "${PACKAGE_DIR}\docs\SCOREBOARDS.md"
   WriteUninstaller "$INSTDIR\Desinstalar.exe"
 SectionEnd
 Section "Uninstall"
@@ -89,9 +93,9 @@ Section "Uninstall"
   Delete "$INSTDIR\LEIA-ME.md"
   Delete "$INSTDIR\compatibility.json"
   Delete "$INSTDIR\docs\BUILD.md"
-
-  Delete "$INSTDIR\docs\COMPATIBILITY.md"
-
+  Delete "$INSTDIR\docs\REFACTOR-0.3.md"
+  Delete "$INSTDIR\docs\REFACTOR-0.4.md"
+  Delete "$INSTDIR\docs\FIX-OBS33-0.4.1.md"
   Delete "$INSTDIR\Desinstalar.exe"
   RMDir "$INSTDIR\data\qt-plugins\tls"
   RMDir "$INSTDIR\data\qt-plugins"

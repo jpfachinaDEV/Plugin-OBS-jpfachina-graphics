@@ -36,6 +36,7 @@ QJsonObject Store::categoryLayout(const QString &pid,const QString &category,QSi
 }
 QJsonObject effectiveLayout(const QJsonObject &p,const QJsonObject &m){
     auto result=m["draft"].toObject();const auto category=panelCategory(m["category"].toString(),m["mime"].toString());
+    if(m["mime"]=="application/x-jp-scoreboard")return Store::validatedLayout({},result);
     auto position=p["categoryLayouts"].toObject()[category].toObject();if(position.isEmpty())for(const auto &v:p["media"].toArray()){const auto first=v.toObject();if(panelCategory(first["category"].toString(),first["mime"].toString())==category){position=positionOnly(first["draft"].toObject());break;}}
     const auto reference=p["categoryFrames"].toObject()[category].toObject();const auto frame=projectFrame(p);
     position=positionForFrame(position,{reference["width"].toInt(frame.width()),reference["height"].toInt(frame.height())},frame);

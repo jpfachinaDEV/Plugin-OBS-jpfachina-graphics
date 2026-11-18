@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 #include <QUuid>
 #include <QSet>
+#include <QMap>
 #include <QImageReader>
 #include <QThread>
 #include <cmath>
@@ -124,13 +125,13 @@ void Store::applyTemplate(const QString &pid,const QString &name,const QStringLi
 }
 static void exportFiles(QJsonObject p,const QString &root,const QString &directory){
     const QDir dir(directory);if(QFile::exists(dir.filePath("project.jpgfx.json")))throw Error("Escolha uma pasta sem projeto exportado.");
-    if(!QDir().mkpath(dir.filePath("media")))throw Error("Não foi possível criar a pasta.");auto media=p["media"].toArray();
+    if(!QDir().mkpath(dir.filePath("media")))throw Error("Não foi possível criar a pasta.");auto media=p["media"].toArray();QMap<QString,QString> logoPaths;
     for(int i=0;i<media.size();++i){auto m=media[i].toObject();m["live"]=QJsonValue::Null;m.remove("thumbnail");
         if(QThread::currentThread()->isInterruptionRequested())throw Error("Exportação cancelada.");
-        if(m["mime"]!="application/x-jp-title"){const auto file=m["file"].toString();if(!file.startsWith("media/")||file.contains("..")||file.contains('\\'))throw Error("Caminho de mídia inválido.");const auto src=QFileInfo(root+"/"+file).canonicalFilePath();if(src.isEmpty()||!src.startsWith(QFileInfo(root).canonicalFilePath()+"/"))throw Error("Mídia fora da biblioteca.");const auto rel="media/"+m["id"].toString()+"."+QFileInfo(src).suffix();
-            if(!QFile::copy(src,dir.filePath(rel)))throw Error("Falha ao exportar mídia. Use uma pasta vazia.");m["file"]=rel;}
+        if(m["mime"]!="application/x-jp-title"&&m["mime"]!="application/x-jp-scoreboard"){const auto file=m["file"].toString();if(!file.startsWith("media/")||file.contains("..")||file.contains('\\'))throw Error("Caminho de mídia inválido.");const auto src=QFileInfo(root+"/"+file).canonicalFilePath();if(src.isEmpty()||!src.startsWith(QFileInfo(root).canonicalFilePath()+"/"))throw Error("Mídia fora da biblioteca.");const auto rel="media/"+m["id"].toString()+"."+QFileInfo(src).suffix();
+            if(!QFile::copy(src,dir.filePath(rel)))throw Error("Falha ao exportar mídia. Use uma pasta vazia.");logoPaths[file]=rel;m["file"]=rel;}
         media[i]=m;}
-    p["media"]=media;p.remove("key");QSaveFile f(dir.filePath("project.jpgfx.json"));const auto bytes=QJsonDocument(QJsonObject{{"format","jpgfx-project"},{"version",1},{"project",p}}).toJson();
+    p["media"]=media;auto score=p["scoreboardData"].toObject();for(const auto &key:{"team1.logo","team2.logo"})if(score.contains(key))score[key]=logoPaths.value(score[key].toString());p["scoreboardData"]=score;p.remove("key");QSaveFile f(dir.filePath("project.jpgfx.json"));const auto bytes=QJsonDocument(QJsonObject{{"format","jpgfx-project"},{"version",1},{"project",p}}).toJson();
     if(!f.open(QIODevice::WriteOnly)||f.write(bytes)!=bytes.size()||!f.commit())throw Error("Falha ao exportar manifest.");
 }
 static QJsonObject prepareProject(const QString &root,const QString &directory){
@@ -142,30 +143,32 @@ static QJsonObject prepareProject(const QString &root,const QString &directory){
     QSet<QString> names;QJsonObject ids;for(const auto &c:cats){const auto n=c.toString();if(n.trimmed().isEmpty()||n.size()>120||names.contains(n))throw Error("Categoria inválida.");names.insert(n);ids[n]=newId();}
     for(const auto &category:panelCategories())if(!names.contains(category)){if(cats.size()>=56)throw Error("Projeto sem espaço para as categorias do painel.");cats.append(category);names.insert(category);ids[category]=newId();}p["categories"]=cats;
     auto media=p["media"].toArray();if(media.size()>1000)throw Error("Limite de mídias.");
-    QStringList copied;
+    QStringList copied;QMap<QString,QString> logoPaths;
     try{
         for(int i=0;i<media.size();++i){auto m=media[i].toObject();if(!names.contains(m["category"].toString())||m["name"].toString().trimmed().isEmpty()||m["name"].toString().size()>120)throw Error("Mídia inválida.");
             if(QThread::currentThread()->isInterruptionRequested())throw Error("Importação cancelada.");
             m["draft"]=Store::validatedLayout({},m["draft"].toObject());const auto id=newId();m["id"]=id;m["live"]=QJsonValue::Null;m["generation"]=0;m.remove("thumbnail");
-            if(m["mime"]!="application/x-jp-title"){
+            if(m["mime"]!="application/x-jp-title"&&m["mime"]!="application/x-jp-scoreboard"){
                 const auto rel=m["file"].toString();if(!rel.startsWith("media/")||rel.contains("..")||rel.contains('\\')||QDir::isAbsolutePath(rel))throw Error("Caminho de mídia inválido.");
                 const auto src=QFileInfo(dir.filePath(rel)).canonicalFilePath(),base=QFileInfo(directory).canonicalFilePath()+"/";
                 if(src.isEmpty()||!src.startsWith(base))throw Error("Mídia fora da pasta exportada.");QFile input(src);
                 if(!input.open(QIODevice::ReadOnly)||input.size()<12||input.size()>256LL*1024*1024)throw Error("Mídia ilegível ou acima do limite.");
                 const auto mime=jp::mediaType(input.peek(4096));if(mime.isEmpty()||mime!=m["mime"].toString())throw Error("Tipo de mídia inválido.");
                 if(mime.startsWith("image/")){QImageReader reader(src);const auto size=reader.size();if(size.isValid()&&qint64(size.width())*size.height()>64LL*1024*1024)throw Error("Imagem acima de 64 megapixels.");}
-                const auto dest="media/"+id+"."+mime.section('/',1);if(!QFile::copy(src,root+"/"+dest))throw Error("Falha ao copiar mídia importada.");copied<<root+"/"+dest;m["file"]=dest;m["bytes"]=double(input.size());
+                const auto dest="media/"+id+"."+mime.section('/',1);if(!QFile::copy(src,root+"/"+dest))throw Error("Falha ao copiar mídia importada.");copied<<root+"/"+dest;logoPaths[rel]=dest;m["file"]=dest;m["bytes"]=double(input.size());
             }
             media[i]=m;}
+        auto score=p["scoreboardData"].toObject();for(const auto &key:{"team1.logo","team2.logo"})if(score.contains(key))score[key]=logoPaths.value(score[key].toString());p["scoreboardData"]=score;
         p["id"]=newId();p["key"]=randomKey();p["media"]=media;p["categoryIds"]=ids;p["obsBindings"]=QJsonArray{};
         return p;
     }catch(...){for(const auto &path:copied)QFile::remove(path);throw;}
 }
 static void discardProjectFiles(const QString &root,const QJsonObject &p){for(const auto &v:p["media"].toArray()){const auto file=v.toObject()["file"].toString();if(file.startsWith("media/")&&!file.contains("..")&&!file.contains('\\'))QFile::remove(root+"/"+file);}}
+static void verifyProjectScoreboards(const Store &store,const QJsonObject &p){QSet<QString> installed;for(const auto &v:store.scoreboards())installed.insert(v.toObject()["id"].toString());for(const auto &v:p["media"].toArray()){const auto m=v.toObject();if(m["mime"]=="application/x-jp-scoreboard"&&!installed.contains(m["templateId"].toString()))throw Error("Este projeto usa um scoreboard não instalado. Importe o pacote do scoreboard antes do projeto.");}}
 void Store::exportProject(const QString &pid,const QString &directory)const{exportFiles(project(pid),root_,directory);}
 QString Store::importProject(const QString &directory){
     if(data_["projects"].toArray().size()>=200)throw Error("Limite de projetos.");const auto p=prepareProject(root_,directory);
-    try{auto list=data_["projects"].toArray();list.append(p);auto next=data_;next["projects"]=list;next["active"]=p["id"];commit(next);return p["id"].toString();}catch(...){discardProjectFiles(root_,p);throw;}
+    try{verifyProjectScoreboards(*this,p);auto list=data_["projects"].toArray();list.append(p);auto next=data_;next["projects"]=list;next["active"]=p["id"];commit(next);return p["id"].toString();}catch(...){discardProjectFiles(root_,p);throw;}
 }
 void Store::exportProjectAsync(const QString &pid,const QString &directory){
     if(projectJob_)throw Error("Aguarde a importação/exportação de projeto em andamento.");const auto p=project(pid);projectJob_=true;const auto root=root_;auto error=std::make_shared<QString>();
@@ -176,6 +179,6 @@ void Store::importProjectAsync(const QString &directory){
     if(projectJob_)throw Error("Aguarde a importação/exportação de projeto em andamento.");if(data_["projects"].toArray().size()>=200)throw Error("Limite de projetos.");projectJob_=true;
     struct Result{QString root,error;QJsonObject project;bool adopted=false;~Result(){if(!adopted)discardProjectFiles(root,project);}};auto result=std::make_shared<Result>();result->root=root_;
     auto *thread=QThread::create([result,directory]{try{result->project=prepareProject(result->root,directory);}catch(const std::exception &e){result->error=QString::fromUtf8(e.what());}});thread->setParent(this);
-    connect(thread,&QThread::finished,this,[this,result]{projectJob_=false;try{if(!result->error.isEmpty())throw Error(result->error);if(data_["projects"].toArray().size()>=200)throw Error("Limite de projetos.");auto list=data_["projects"].toArray();list.append(result->project);auto next=data_;next["projects"]=list;next["active"]=result->project["id"];commit(next);result->adopted=true;emit importFinished("Projeto importado; elementos iniciam fora do ar.",false);}catch(const std::exception &e){emit importFinished(QString::fromUtf8(e.what()),true);}});connect(thread,&QThread::finished,thread,&QObject::deleteLater);thread->start();
+    connect(thread,&QThread::finished,this,[this,result]{projectJob_=false;try{if(!result->error.isEmpty())throw Error(result->error);if(data_["projects"].toArray().size()>=200)throw Error("Limite de projetos.");verifyProjectScoreboards(*this,result->project);auto list=data_["projects"].toArray();list.append(result->project);auto next=data_;next["projects"]=list;next["active"]=result->project["id"];commit(next);result->adopted=true;emit importFinished("Projeto importado; elementos iniciam fora do ar.",false);}catch(const std::exception &e){emit importFinished(QString::fromUtf8(e.what()),true);}});connect(thread,&QThread::finished,thread,&QObject::deleteLater);thread->start();
 }
 }

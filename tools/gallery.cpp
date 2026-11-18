@@ -70,11 +70,17 @@ int main(int argc,char **argv){
         require(screenshot(scene).save(output+"/03-saida-obs.png"),"Could not save real program frame");
         jp::OperatorPanel panel(controller);panel.setAttribute(Qt::WA_DontShowOnScreen);panel.resize(1536,864);panel.show();controller.select(selected);settle(600);
         require(panel.grab().save(output+"/01-painel-aba1.png"),"Could not capture tab one");
+        // Capture the real third tab with a populated match, rather than a mockup.
+        auto boards=store.scoreboards();require(!boards.isEmpty(),"No scoreboard templates available");
+        const auto boardId=store.selectScoreboard(project,boards.first().toObject()["id"].toString());controller.select(boardId);
+        store.scoreboardData(project,{{"team1.name","JPFACHINA"},{"team1.shortName","JPF"},{"team1.score","2"},{"team1.color","#3b187c"},{"team2.name","CONVIDADOS"},{"team2.shortName","CONV"},{"team2.score","1"},{"team2.color","#438f27"},{"clockSeconds",3725},{"clockRunning",false},{"match.period","2º Tempo"},{"match.extraTime","+3"}});
+        panel.findChild<QPushButton*>("jpTab3")->click();settle(500);
+        require(panel.grab().save(output+"/07-painel-aba3-scoreboard.png"),"Could not capture tab three");
         auto dialog=[&](const char *button,const char *name,const QString &file,bool sceneTab=false){bool saved=false;QTimer::singleShot(450,&panel,[&]{auto *widget=panel.findChild<QDialog*>(name);if(!widget){QApplication::closeAllWindows();return;}if(sceneTab){auto *tabs=widget->findChild<QTabWidget*>();if(tabs)tabs->setCurrentIndex(1);}settle(200);saved=widget->grab().save(output+"/"+file);widget->reject();});auto *action=panel.findChild<QPushButton*>(button);require(action,"Missing production UI button");action->click();require(saved,"Could not capture production dialog");};
         dialog("jpScenes","jpProjectsDialog","05-projetos.png");dialog("jpLink","jpLinkDialog","06-link-obs.png",true);
         auto *editor=panel.findChild<jp::PositionDialog*>();require(editor,"Position editor not found");editor->openCategory("QR-Codes");settle(500);require(editor->grab().save(output+"/04-editor-posicao.png"),"Could not capture position editor");editor->reject();
         panel.findChild<QPushButton*>("jpTab2")->click();controller.select(videos.first());controller.take();require(waitFor([&]{return controller.onAir(videos.first());}),"Video not rendered");const auto thumbnail=screenshot(source).scaled(640,360,Qt::KeepAspectRatio,Qt::SmoothTransformation);QByteArray bytes;QBuffer buffer(&bytes);buffer.open(QIODevice::WriteOnly);thumbnail.save(&buffer,"PNG");for(const auto &id:videos)store.saveThumbnail(project,id,bytes);controller.select(videos[1]);settle(500);require(panel.grab().save(output+"/02-painel-aba2.png"),"Could not capture tab two");
         store.clearLive(project);require(waitFor([&]{return controller.confirmed.isEmpty();}),"Demo output did not clear");inspector.close();controller.link(false);
-        QTextStream(stdout)<<"PASS six real Qt/OBS screenshots; isolated data, confirmed tally and video playback.\n";return 0;
+        QTextStream(stdout)<<"PASS seven real Qt/OBS screenshots; isolated data, confirmed tally, scoreboard and video playback.\n";return 0;
     }catch(const std::exception &error){QTextStream(stderr)<<"Gallery: "<<error.what()<<"\n";return 1;}
 }

@@ -1,13 +1,13 @@
 ﻿{
     "screenshots":  [
                         {
-                            "sha256":  "4a687b2c379389995d24723f2935bbd1ce14f6c68d5290fb3a68fbbb9eb182c0",
+                            "sha256":  "ea92cbd0807cdce434d2af1b7e051aa9a6b7c0a885e688f4e80a7a7839113e1e",
                             "width":  1920,
                             "file":  "01-painel-aba1.png",
                             "height":  1080
                         },
                         {
-                            "sha256":  "e05681e205122a9332295dc15c968c37228b53ce5b64f9a73f827d0548221ff7",
+                            "sha256":  "dd7e691469281e2cf302c93675a763ddacea87a6cdb7d9b21ad826bcbf7d9c68",
                             "width":  1920,
                             "file":  "02-painel-aba2.png",
                             "height":  1080
@@ -19,7 +19,7 @@
                             "height":  1080
                         },
                         {
-                            "sha256":  "112bc2bf4c0dbbb23b42e440add7da5ec0e5237d0b3b35dba5832a96b0217d24",
+                            "sha256":  "662675980346640a54dc9a6d9df14352f0181e09671ed48bdf31ad3a37c25515",
                             "width":  1400,
                             "file":  "04-editor-posicao.png",
                             "height":  960
@@ -31,14 +31,20 @@
                             "height":  738
                         },
                         {
-                            "sha256":  "a013995721d5045e0bedfb5e2517e7bb548f316094bc07091a9ae68dca26e3f8",
+                            "sha256":  "79011e737dcd42f6bc9c163453d6588c610e433206aeb17c4606bc898040aa97",
                             "width":  1063,
                             "file":  "06-link-obs.png",
                             "height":  894
+                        },
+                        {
+                            "sha256":  "71d418b53c4e0a4ddd7239becfe7b7c6bea1436018a6a6c967acab00133cab10",
+                            "width":  1920,
+                            "file":  "07-painel-aba3-scoreboard.png",
+                            "height":  1080
                         }
                     ],
     "qtVersion":  "6.11.1",
     "obsVersion":  "33.0.1",
     "origin":  "Production Qt widgets and real OBS output, isolated demonstration data",
-    "pluginVersion":  "0.4.1"
+    "pluginVersion":  "1.0.3-beta"
 }

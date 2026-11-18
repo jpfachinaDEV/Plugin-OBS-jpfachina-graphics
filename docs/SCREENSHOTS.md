@@ -13,6 +13,10 @@ O QR-Code da demonstração aponta para https://example.org.
 
 ![ABA 2 com artes e vídeo de teste em loop](images/02-painel-aba2.png)
 
+## Terceira aba — Scoreboard
+
+![ABA 3 com modelo de placar, times, resultado e cronômetro preenchidos no ambiente de teste](images/07-painel-aba3-scoreboard.png)
+
 ## Saída renderizada
 
 ![Composição real do OBS com o cenário e os grafismos demonstrativos](images/03-saida-obs.png)

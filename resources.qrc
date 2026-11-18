@@ -1,0 +1,5 @@
+<RCC><qresource prefix="/jp">
+  <file>web/panel.html</file><file>web/panel.css</file><file>web/panel.js</file>
+  <file>web/overlay.html</file><file>web/overlay.css</file><file>web/overlay.js</file>
+  <file>assets/branding/jpfachina-sync-original.png</file>
+</qresource></RCC>

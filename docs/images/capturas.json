@@ -1,0 +1,44 @@
+﻿{
+    "screenshots":  [
+                        {
+                            "sha256":  "4a687b2c379389995d24723f2935bbd1ce14f6c68d5290fb3a68fbbb9eb182c0",
+                            "width":  1920,
+                            "file":  "01-painel-aba1.png",
+                            "height":  1080
+                        },
+                        {
+                            "sha256":  "e05681e205122a9332295dc15c968c37228b53ce5b64f9a73f827d0548221ff7",
+                            "width":  1920,
+                            "file":  "02-painel-aba2.png",
+                            "height":  1080
+                        },
+                        {
+                            "sha256":  "cf1a089ecb89d0f93cd0004617be2ba05317d0d45464761dd81bc6d769936ab0",
+                            "width":  1920,
+                            "file":  "03-saida-obs.png",
+                            "height":  1080
+                        },
+                        {
+                            "sha256":  "112bc2bf4c0dbbb23b42e440add7da5ec0e5237d0b3b35dba5832a96b0217d24",
+                            "width":  1400,
+                            "file":  "04-editor-posicao.png",
+                            "height":  960
+                        },
+                        {
+                            "sha256":  "45bc3adeb519249ed33826f04a4b064726cce6404390f9a2f5d4b37e8a8c1643",
+                            "width":  950,
+                            "file":  "05-projetos.png",
+                            "height":  738
+                        },
+                        {
+                            "sha256":  "a013995721d5045e0bedfb5e2517e7bb548f316094bc07091a9ae68dca26e3f8",
+                            "width":  1063,
+                            "file":  "06-link-obs.png",
+                            "height":  894
+                        }
+                    ],
+    "qtVersion":  "6.11.1",
+    "obsVersion":  "33.0.1",
+    "origin":  "Production Qt widgets and real OBS output, isolated demonstration data",
+    "pluginVersion":  "0.4.1"
+}

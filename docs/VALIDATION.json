@@ -1,0 +1,31 @@
+﻿{
+    "browserTests":  {
+                         "passed":  true,
+                         "tests":  7
+                     },
+    "publicInstaller":  "installed and DLL hashes verified in isolated folder",
+    "obs":  "33.0.1",
+    "platform":  "Windows x64",
+    "version":  "0.4.1",
+    "sourceBuild":  "passed",
+    "ctest":  {
+                  "passed":  true,
+                  "checks":  623,
+                  "suites":  5
+              },
+    "publication":  {
+                        "buildDirectoriesIncluded":  false,
+                        "personalLibraryIncluded":  false,
+                        "credentialsIncluded":  false
+                    },
+    "compatibilityLimits":  "See COMPATIBILITY.md",
+    "gallery":  {
+                    "screenshots":  6,
+                    "realObsConnection":  true,
+                    "realRenderedOutput":  true,
+                    "demonstrationDataOnly":  true,
+                    "productionWidgets":  true
+                },
+    "qt":  "6.11.1",
+    "branding":  "original SHA-256 verified"
+}
